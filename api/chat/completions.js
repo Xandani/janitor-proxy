@@ -1,11 +1,12 @@
 // api/chat/completions.js
+// Для Vercel / Next API routes. Node 18+ поддерживает global fetch.
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-  // Разрешенные origin — оставь только Janitor (и localhost для теста, если нужно)
-  const allowed = ['https://app.janitor.ai', 'http://localhost:3000'];
+  // Настрой allowedOrigins под Janitor и, возможно, localhost для теста
+  const allowedOrigins = ['https://app.janitor.ai', 'http://localhost:3000'];
   const origin = req.headers.origin;
-  if (origin && !allowed.includes(origin)) {
+  if (origin && !allowedOrigins.includes(origin)) {
     return res.status(403).json({ error: 'Origin not allowed' });
   }
 
@@ -14,15 +15,13 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.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}`
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`
       },
       body: JSON.stringify(req.body)
     });
 
-    const text = await resp.text();
-    res.status(resp.status)
-       .set('content-type', resp.headers.get('content-type') || 'application/json')
-       .send(text);
+    const data = await resp.text(); // иногда полезно текстом пропускать
+    res.status(resp.status).set('content-type', resp.headers.get('content-type') || 'application/json').send(data);
   } catch (err) {
     console.error('Proxy error', err);
     res.status(500).json({ error: 'Proxy failed', detail: err.message });
